@@ -1,0 +1,6 @@
+@HavaDurumuAPI_HostAddress = http://localhost:5182
+
+GET {{HavaDurumuAPI_HostAddress}}/api/hava/Istanbul
+Accept: application/json
+
+###
