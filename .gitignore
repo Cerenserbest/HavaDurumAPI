@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Geliştirmeye özel ayarlar (API anahtarları gibi hassas bilgiler burada olmamalı ama önlem olarak yok sayılıyor)
+appsettings.Development.json
+
 # User-specific files
 *.rsuser
 *.suo

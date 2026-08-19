@@ -1,17 +1,32 @@
+using HavaDurumuAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HavaDurumuAPI.Controllers;
 
-// Hava durumu ile ilgili istekleri karşılayan denetleyici (şimdilik iskelet)
+// Hava durumu ile ilgili istekleri karşılayan denetleyici
 [ApiController]
 [Route("api/hava")]
 public class HavaController : ControllerBase
 {
-    // GET /api/hava/{sehir}
-    // Şimdilik gerçek hava durumu verisi yok, sadece sabit bir metin dönüyor
-    [HttpGet("{sehir}")]
-    public IActionResult GetHavaDurumu(string sehir)
+    private readonly IHavaDurumuServisi _havaDurumuServisi;
+
+    public HavaController(IHavaDurumuServisi havaDurumuServisi)
     {
-        return Ok($"Merhaba {sehir}");
+        _havaDurumuServisi = havaDurumuServisi;
+    }
+
+    // GET /api/hava/{sehir}
+    [HttpGet("{sehir}")]
+    public async Task<IActionResult> GetHavaDurumu(string sehir)
+    {
+        var havaDurumu = await _havaDurumuServisi.GetirAsync(sehir);
+
+        // Şehir bulunamazsa kullanıcıya anlaşılır bir Türkçe hata mesajı dönülür
+        if (havaDurumu is null)
+        {
+            return NotFound($"'{sehir}' adlı şehir bulunamadı.");
+        }
+
+        return Ok(havaDurumu);
     }
 }
