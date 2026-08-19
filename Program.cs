@@ -1,4 +1,6 @@
+using HavaDurumuAPI.Data;
 using HavaDurumuAPI.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,10 @@ builder.Services.AddSwaggerGen();
 
 // Hava durumu servisi ve bu servisin kullandığı HttpClient DI konteynerine kaydedilir
 builder.Services.AddHttpClient<IHavaDurumuServisi, HavaDurumuServisi>();
+
+// Veritabanı bağlamı, appsettings.Development.json'daki connection string ile kaydedilir
+builder.Services.AddDbContext<UygulamaDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("VarsayilanBaglanti")));
 
 var app = builder.Build();
 
