@@ -1,7 +1,7 @@
-using HavaDurumuAPI.Models;
+using HavaDurumuOrtak.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace HavaDurumuAPI.Data;
+namespace HavaDurumuOrtak.Data;
 
 // Uygulamanın veritabanı bağlamı
 public class UygulamaDbContext : DbContext

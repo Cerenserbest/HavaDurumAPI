@@ -1,6 +1,6 @@
-using HavaDurumuAPI.Data;
-using HavaDurumuAPI.Models;
 using HavaDurumuAPI.Services;
+using HavaDurumuOrtak.Data;
+using HavaDurumuOrtak.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,11 +12,16 @@ namespace HavaDurumuAPI.Controllers;
 public class HavaController : ControllerBase
 {
     private readonly IHavaDurumuServisi _havaDurumuServisi;
+    private readonly IKuyrukYayinciServisi _kuyrukYayinciServisi;
     private readonly UygulamaDbContext _dbContext;
 
-    public HavaController(IHavaDurumuServisi havaDurumuServisi, UygulamaDbContext dbContext)
+    public HavaController(
+        IHavaDurumuServisi havaDurumuServisi,
+        IKuyrukYayinciServisi kuyrukYayinciServisi,
+        UygulamaDbContext dbContext)
     {
         _havaDurumuServisi = havaDurumuServisi;
+        _kuyrukYayinciServisi = kuyrukYayinciServisi;
         _dbContext = dbContext;
     }
 
@@ -45,8 +50,9 @@ public class HavaController : ControllerBase
             return NotFound($"'{sehir}' adlı şehir bulunamadı.");
         }
 
-        // Başarılı sorgu veritabanına kaydedilir
-        _dbContext.SorguKayitlari.Add(new SorguKaydi
+        // Veritabanına doğrudan yazmak yerine sorgu kaydı RabbitMQ kuyruğuna gönderilir;
+        // kaydı gerçekten veritabanına yazmak HavaDurumuConsumer'ın işidir
+        await _kuyrukYayinciServisi.YayinlaAsync(new SorguKaydi
         {
             Sehir = havaDurumu.Sehir,
             Sicaklik = havaDurumu.Sicaklik,
@@ -55,7 +61,6 @@ public class HavaController : ControllerBase
             Aciklama = havaDurumu.Aciklama,
             SorguTarihi = DateTime.UtcNow
         });
-        await _dbContext.SaveChangesAsync();
 
         return Ok(havaDurumu);
     }

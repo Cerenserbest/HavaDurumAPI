@@ -1,4 +1,4 @@
-namespace HavaDurumuAPI.Models;
+namespace HavaDurumuOrtak.Models;
 
 // Yapılan her hava durumu sorgusunun veritabanına kaydedilen hali
 public class SorguKaydi
