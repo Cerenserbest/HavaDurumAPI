@@ -27,6 +27,14 @@ builder.Services.AddDbContext<UygulamaDbContext>(options =>
 
 var app = builder.Build();
 
+// Uygulama başlarken bekleyen migration'lar otomatik uygulanır.
+// Böylece "docker compose up" ile veritabanı şeması elle bir şey yapmaya gerek kalmadan hazırlanır.
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<UygulamaDbContext>();
+    dbContext.Database.Migrate();
+}
+
 // HTTP istek pipeline'ını yapılandır
 if (app.Environment.IsDevelopment())
 {

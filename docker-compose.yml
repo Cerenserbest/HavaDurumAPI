@@ -1,0 +1,83 @@
+services:
+  # PostgreSQL veritabanı
+  postgres:
+    image: postgres:16
+    container_name: havadurumu-db
+    environment:
+      POSTGRES_USER: havadurumu
+      POSTGRES_PASSWORD: havadurumu123
+      POSTGRES_DB: havadurumu_db
+    ports:
+      - "5432:5432"
+    volumes:
+      # Veri, konteyner silinse bile kalıcı olsun diye adlandırılmış bir volume'a yazılır
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U havadurumu -d havadurumu_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # RabbitMQ mesaj kuyruğu (yönetim paneli dahil)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: havadurumu-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      # "ping" node'un ayakta olduğunu gösterir ama AMQP portunun (5672) dinlemeye
+      # başladığını garanti etmez; bu yüzden port bağlantısı da kontrol ediliyor
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Hava durumu API'si (publisher)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: havadurumu-api
+    ports:
+      - "5182:8080"
+    environment:
+      # Compose ortamında servislere "localhost" değil, servis adlarıyla erişilir
+      ConnectionStrings__VarsayilanBaglanti: "Host=postgres;Port=5432;Database=havadurumu_db;Username=havadurumu;Password=havadurumu123"
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__UserName: guest
+      RabbitMq__Password: guest
+      RabbitMq__KuyrukAdi: havadurumu-kuyruk
+      # OpenWeather API anahtarı buraya yazılmaz; .env dosyasından okunur (bkz. .env.example)
+      OpenWeather__ApiKey: ${OPENWEATHER_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    # RabbitMQ "healthy" olsa bile AMQP portu geç açılabilir; böyle bir durumda
+    # servis tekrar başlatılıp yeniden bağlanmayı dener
+    restart: on-failure
+
+  # Kuyruğu dinleyip veritabanına yazan consumer (Worker Service)
+  consumer:
+    build:
+      context: .
+      dockerfile: HavaDurumuConsumer/Dockerfile
+    container_name: havadurumu-consumer
+    environment:
+      ConnectionStrings__VarsayilanBaglanti: "Host=postgres;Port=5432;Database=havadurumu_db;Username=havadurumu;Password=havadurumu123"
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__UserName: guest
+      RabbitMq__Password: guest
+      RabbitMq__KuyrukAdi: havadurumu-kuyruk
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  postgres-data:
