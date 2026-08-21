@@ -1,3 +1,4 @@
+using HavaDurumuAPI.Middleware;
 using HavaDurumuAPI.Services;
 using HavaDurumuOrtak.Data;
 using Microsoft.EntityFrameworkCore;
@@ -7,12 +8,19 @@ var builder = WebApplication.CreateBuilder(args);
 // Servisleri konteynere ekle
 
 builder.Services.AddControllers();
+
+// Beklenmeyen hataları tek bir yerden yakalayıp kullanıcıya güvenli, genel bir mesaj döner
+builder.Services.AddExceptionHandler<GenelHataYakalayici>();
+builder.Services.AddProblemDetails();
 // Swagger/OpenAPI yapılandırması hakkında daha fazla bilgi için: https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Hava durumu servisi ve bu servisin kullandığı HttpClient DI konteynerine kaydedilir
 builder.Services.AddHttpClient<IHavaDurumuServisi, HavaDurumuServisi>();
+
+// HavaDurumuServisi'nin sorgu sonuçlarını 10 dakikalığına cache'lemesi için kullanılır
+builder.Services.AddMemoryCache();
 
 // Sorgu kayıtlarını RabbitMQ kuyruğuna gönderen servis
 builder.Services.AddSingleton<IKuyrukYayinciServisi, KuyrukYayinciServisi>();
@@ -36,6 +44,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // HTTP istek pipeline'ını yapılandır
+
+// Global hata yakalayıcı, pipeline'ın en başında olmalı ki sonraki her adımdaki hatayı yakalayabilsin
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
